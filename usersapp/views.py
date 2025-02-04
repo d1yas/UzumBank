@@ -71,3 +71,6 @@ class UpdateData(APIView):
             return Response({"message": "User Data updated successfully"}, status=status.HTTP_200_OK)
         else:
             return Response({"detail": "User not found or Password Incorrect"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# test
