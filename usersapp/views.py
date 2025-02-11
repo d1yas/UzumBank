@@ -4,11 +4,6 @@ from rest_framework import status
 from .models import User
 from .serializers import UpdatePasswordSerializer, UserSerializer, UpdateDataSerializer
 
-class BarchaUser(APIView):
-    def get(self, request, id):
-        odamlar = User.objects.all().filter(id=id)  # Barcha foydalanuvchilarni olib keladi
-        serializer = UserSerializer(odamlar, many=True)  # Seriyalashtiradi
-        return Response(serializer.data)
 
 
 class RegisterView(APIView):
@@ -18,6 +13,23 @@ class RegisterView(APIView):
             serializer.save()
             return Response({"message": "User registered successfully"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def options(self, request, *args, **kwargs):
+        custom_metadata = {
+            'allowed_methods': ['POST', 'OPTIONS'],
+            'endpoint_description': 'Register a new user.',
+            'available_filters': ['id','username'],
+            'pagination': {
+                'page_size': 10,
+                'max_page_size': 100
+            },
+            'custom_info': {
+                'version': '1.0',
+                'developer': 'Diyas',
+                'last_updated': '2024-02-11'
+            }
+        }
+
 
 
 class LoginView(APIView):
@@ -30,6 +42,23 @@ class LoginView(APIView):
             return Response({"message": "Login successful", "user": serializer.data}, status=200)
         return Response({"detail": "Invalid credentials"}, status=401)
 
+    def options(self, request, *args, **kwargs):
+        custom_metadata = {
+            'allowed_methods': ['POST', 'OPTIONS'],
+            'endpoint_description': 'Login existing user',
+            'required_fields': ['username', 'password'],
+            'response_format': {
+                'success': {'message': 'string', 'user': 'object'},
+                'error': {'detail': 'string'}
+            },
+            'custom_info': {
+                'version': '1.0',
+                'developer': 'Diyas',
+                'last_updated': '2024-02-11'
+            }
+        }
+        return Response(custom_metadata, status=status.HTTP_200_OK)
+
 
 class AllUsersView(APIView):
     def get(self, request):
@@ -37,12 +66,46 @@ class AllUsersView(APIView):
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def options(self, request, *args, **kwargs):
+        custom_metadata = {
+            'allowed_methods': ['GET', 'OPTIONS'],
+            'endpoint_description': 'Show all users in database',
+            'available_filters': ['id','username'],
+            'pagination': {
+                'page_size': 10,
+                'max_page_size': 100
+            },
+            'custom_info': {
+                'version': '1.0',
+                'developer': 'Diyas',
+                'last_updated': '2024-02-11'
+            }
+        }
+
+        return Response(custom_metadata, status=status.HTTP_200_OK)
+
 
 class UserDetailView(APIView):
     def get(self, request, id):
         user = User.objects.all().filter(id=id).first()
         serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def options(self, request, *args, **kwargs):
+        custom_metadata = {
+            'allowed_methods': ['GET', 'OPTIONS'],
+            'endpoint_description': 'Get user details by ID',
+            'parameters': {
+                'id': 'integer (required) - User ID'
+            },
+            'response_format': 'UserSerializer data',
+            'custom_info': {
+                'version': '1.0',
+                'developer': 'Diyas',
+                'last_updated': '2024-02-11'
+            }
+        }
+        return Response(custom_metadata, status=status.HTTP_200_OK)
 
 class UpdatePasswordUser(APIView):
     serializer_class = UpdatePasswordSerializer
@@ -57,6 +120,22 @@ class UpdatePasswordUser(APIView):
         else:
             return Response({"detail": "User not found or Password Incorrect"}, status=status.HTTP_400_BAD_REQUEST)
 
+    def options(self, request, *args, **kwargs):
+        custom_metadata = {
+            'allowed_methods': ['PUT', 'OPTIONS'],
+            'endpoint_description': 'Update user password',
+            'required_fields': ['username', 'old_password', 'new_password'],
+            'response_format': {
+                'success': {'message': 'string'},
+                'error': {'detail': 'string'}
+            },
+            'custom_info': {
+                'version': '1.0',
+                'developer': 'Diyas',
+                'last_updated': '2024-02-11'
+            }
+        }
+        return Response(custom_metadata, status=status.HTTP_200_OK)
 
 class UpdateData(APIView):
     serializer_class = UpdateDataSerializer
@@ -72,5 +151,49 @@ class UpdateData(APIView):
         else:
             return Response({"detail": "User not found or Password Incorrect"}, status=status.HTTP_400_BAD_REQUEST)
 
+    def options(self, request, *args, **kwargs):
+        custom_metadata = {
+            'allowed_methods': ['PATCH', 'OPTIONS'],
+            'endpoint_description': 'Update user data including username and password',
+            'required_fields': ['username', 'old_password', 'new_password', 'new_username'],
+            'response_format': {
+                'success': {'message': 'string'},
+                'error': {'detail': 'string'}
+            },
+            'custom_info': {
+                'version': '1.0',
+                'developer': 'Diyas',
+                'last_updated': '2024-02-11'
+            }
+        }
+        return Response(custom_metadata, status=status.HTTP_200_OK)
 
-# test
+
+class DeleteUserAPI(APIView):
+    def delete(self, request, id):
+        try:
+            user = User.objects.all().filter(id=id).delete()
+            return Response({"message": f"User Data deleted successfully User id: {id} "}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found "}, status=status.HTTP_400_BAD_REQUEST)
+
+    def options(self, request, *args, **kwargs):
+        custom_metadata = {
+                'allowed_methods': ['DELETE', 'OPTIONS'],
+                'endpoint_description': 'Delete user by ID',
+                'parameters': {
+                    'id': 'integer (required) - User ID to delete'
+                },
+                'response_format': {
+                    'success': {'message': 'string'},
+                    'error': {'detail': 'string'}
+                },
+                'custom_info': {
+                    'version': '1.0',
+                    'developer': 'Diyas',
+                    'last_updated': '2024-02-11'
+                }
+            }
+        return Response(custom_metadata, status=status.HTTP_200_OK)
+
+
