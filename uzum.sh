@@ -24,4 +24,5 @@ python manage.py collectstatic --noinput
 python manage.py makemigrations usersapp
 python manage.py makemigrations cardapp
 python manage.py migrate
+python manage.py createsuperuser
 python manage.py runserver

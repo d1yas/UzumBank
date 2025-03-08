@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from .models import Card
 from rest_framework.views import APIView
-from .serializers import CarsSerializer, TransacsionSerializer, UpdatePasswordCardSerializer, UpdateDataCardSerializer
+from .serializers import CardSerializer, TransacsionSerializer, UpdatePasswordCardSerializer, UpdateDataCardSerializer, AddMoneySerializer, AddCardSerializer
 from rest_framework.response import Response
 
 from usersapp.models import User
@@ -10,7 +10,7 @@ from usersapp.models import User
 class barcha_card(APIView):
     def get(self, request):
         cardlar = Card.objects.all()
-        serializer2 = CarsSerializer(cardlar, many=True)
+        serializer2 = CardSerializer(cardlar, many=True)
         return Response(serializer2.data)
 
 
@@ -44,7 +44,7 @@ class Transacsion(APIView):
 class TopMoneyCard(APIView):
     def get(self, request):
         card = Card.objects.all().order_by('?')  # Tasodifiy tartibda olib keladi
-        serializer = CarsSerializer(card, many=True)
+        serializer = CardSerializer(card, many=True)
         return Response(serializer.data)
 
 
@@ -61,15 +61,59 @@ class UpdatePasswordCardAPI(APIView):
             return Response({"message": "Card not found or pincode does not exist"}, status=404)
 
 
-# class UpdateCardDataAPI(APIView):
+class AddMoneyApi(APIView):
+    serializer_class = AddMoneySerializer
+    def put(self,request):
+        money = float(request.data.get('money'))
+        card_number = request.data.get('card_number')
+        old_money = Card.objects.all().filter(card_number=card_number).first()
+        summ = float(old_money.money + money)
+        
+        Card.objects.all().filter(card_number=card_number).update(money=summ)
+        return Response({"message": "Money added successfully"}, status=200)
+    
+
+
+
+
+
+# class  All_Card(APIView):
+#     def get(self, request):
+#         cards = Card.objects.all()
+#         serializers = CardSerializer(cards, many=True)
+#         return Response(serializers.data)
+
+
+class AddCard(APIView):
+    def post(self,request):
+        serializers = AddCardSerializer(data=request.data)
+        if serializers.is_valid():
+            serializers.save()
+            return Response({"message": "Card added succesfully"},status=200)
+        return Response({"message": "Error"},status=404)
+    
+
+# class DeleteCard(APIView):
+#     def delete(self,request,id):
+#         try:
+#             card = Card.objects.all().filter(id=id).delete()
+#             return Response({"message":"Card delete succesfullly"},status=200)
+#         except Card.DoesNotExist:
+#             return Response({"message": "Card not found"},status=400)
+
+
+# class UpdateCardAPI(APIView):
 #     serializer_class = UpdateDataCardSerializer
-#     def patch(self,request):
-#         old_card_number = request.data.get('card_number')
-#         new_card_number = request.data.get('new_card_number')
-#         old_card_pin_code = request.data.get('old_card_pin_code')
-#         new_card_pin_code = request.data.get('new_card_pin_code')
-#         if Card.objects.all().filter(card_number=old_card_number, card_pin_code=old_card_pin_code).exists():
-#             Card.objects.filter(card_number=old_card_number, card_pin_code=old_card_pin_code).update(card_number=new_card_number, card_pin_code=new_card_pin_code)
-#             return Response({"message": "Card Data updated successfully"}, status=200)
-#         else:
-#             return Response({"message": "Card not found or pincode does not exist"}, status=404)
+
+#     def patch(self, request):
+#         card_number = request.data.get('card_number')
+#         try:
+#             card = Card.objects.get(card_number=card_number)
+#         except Card.DoesNotExist:
+#             return Response({"message": "Card not found"}, status=404)
+
+#         serializer = self.serializer_class(card, data=request.data, partial=True)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response({"message": "Card updated successfully", "data": serializer.data}, status=200)
+#         return Response(serializer.errors, status=400)
