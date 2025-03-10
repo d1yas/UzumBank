@@ -63,17 +63,31 @@ class UpdatePasswordCardAPI(APIView):
 
 class AddMoneyApi(APIView):
     serializer_class = AddMoneySerializer
-    def put(self,request):
-        money = float(request.data.get('money'))
+
+    def put(self, request):
+        money = request.data.get('money')
         card_number = request.data.get('card_number')
-        old_money = Card.objects.all().filter(card_number=card_number).first()
-        summ = float(old_money.money + money)
-        
-        Card.objects.all().filter(card_number=card_number).update(money=summ)
+
+        # "money" qiymatini tekshirish
+        if not money:
+            return Response({"error": "Money field is required"}, status=400)
+
+        try:
+            money = float(money)
+        except ValueError:
+            return Response({"error": "Invalid money value"}, status=400)
+
+        # Karta mavjudligini tekshirish
+        old_money = Card.objects.filter(card_number=card_number).first()
+        if old_money is None:
+            return Response({"error": "Card not found"}, status=404)
+
+        summ = float(old_money.money) + money
+
+        # Pul miqdorini yangilash
+        Card.objects.filter(card_number=card_number).update(money=summ)
+
         return Response({"message": "Money added successfully"}, status=200)
-    
-
-
 
 
 
