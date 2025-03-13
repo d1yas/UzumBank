@@ -1,9 +1,18 @@
+from django.core.paginator import Paginator
+from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import User
+from .models import Contact, User
 from .serializers import UpdatePasswordSerializer, UserSerializer, UpdateDataSerializer
 
+
+def listing(request):
+    contact_list = Contact.objects.all()
+    paginator = Paginator(contact_list, 25)  # Show 25 contacts per page.
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+    return render(request, "list.html", {"page_obj": page_obj})
 
 
 class RegisterView(APIView):
@@ -13,23 +22,6 @@ class RegisterView(APIView):
             serializer.save()
             return Response({"message": "User registered successfully"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def options(self, request, *args, **kwargs):
-        custom_metadata = {
-            'allowed_methods': ['POST', 'OPTIONS'],
-            'endpoint_description': 'Register a new user.',
-            'available_filters': ['id','username'],
-            'pagination': {
-                'page_size': 10,
-                'max_page_size': 100
-            },
-            'custom_info': {
-                'version': '1.0',
-                'developer': 'Diyas',
-                'last_updated': '2024-02-11'
-            }
-        }
-
 
 
 class LoginView(APIView):
@@ -42,70 +34,25 @@ class LoginView(APIView):
             return Response({"message": "Login successful", "user": serializer.data}, status=200)
         return Response({"detail": "Invalid credentials"}, status=401)
 
-    def options(self, request, *args, **kwargs):
-        custom_metadata = {
-            'allowed_methods': ['POST', 'OPTIONS'],
-            'endpoint_description': 'Login existing user',
-            'required_fields': ['username', 'password'],
-            'response_format': {
-                'success': {'message': 'string', 'user': 'object'},
-                'error': {'detail': 'string'}
-            },
-            'custom_info': {
-                'version': '1.0',
-                'developer': 'Diyas',
-                'last_updated': '2024-02-11'
-            }
-        }
-        return Response(custom_metadata, status=status.HTTP_200_OK)
-
 
 class AllUsersView(APIView):
     def get(self, request):
         users = User.objects.all()
-        serializer = UserSerializer(users, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def options(self, request, *args, **kwargs):
-        custom_metadata = {
-            'allowed_methods': ['GET', 'OPTIONS'],
-            'endpoint_description': 'Show all users in database',
-            'available_filters': ['id','username'],
-            'pagination': {
-                'page_size': 10,
-                'max_page_size': 100
-            },
-            'custom_info': {
-                'version': '1.0',
-                'developer': 'Diyas',
-                'last_updated': '2024-02-11'
-            }
-        }
-
-        return Response(custom_metadata, status=status.HTTP_200_OK)
+        paginator = Paginator(users, 10)
+        page_number = request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
+        serializer = UserSerializer(page_obj, many=True)
+        return Response({"users": serializer.data, "total_pages": paginator.num_pages}, status=status.HTTP_200_OK)
 
 
 class UserDetailView(APIView):
     def get(self, request, id):
-        user = User.objects.all().filter(id=id).first()
+        user = User.objects.filter(id=id).first()
+        if not user:
+            return Response({"detail": "User not found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def options(self, request, *args, **kwargs):
-        custom_metadata = {
-            'allowed_methods': ['GET', 'OPTIONS'],
-            'endpoint_description': 'Get user details by ID',
-            'parameters': {
-                'id': 'integer (required) - User ID'
-            },
-            'response_format': 'UserSerializer data',
-            'custom_info': {
-                'version': '1.0',
-                'developer': 'Diyas',
-                'last_updated': '2024-02-11'
-            }
-        }
-        return Response(custom_metadata, status=status.HTTP_200_OK)
 
 class UpdatePasswordUser(APIView):
     serializer_class = UpdatePasswordSerializer
@@ -114,28 +61,13 @@ class UpdatePasswordUser(APIView):
         username = request.data.get('username')
         old_password = request.data.get('old_password')
         new_password = request.data.get('new_password')
-        if User.objects.all().filter(username=username, password=old_password).exists():
-            User.objects.filter(username=username).update(password=new_password)
+        user = User.objects.filter(username=username, password=old_password).first()
+        if user:
+            user.password = new_password
+            user.save()
             return Response({"message": "Password updated successfully"}, status=status.HTTP_200_OK)
-        else:
-            return Response({"detail": "User not found or Password Incorrect"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "User not found or Password Incorrect"}, status=status.HTTP_400_BAD_REQUEST)
 
-    def options(self, request, *args, **kwargs):
-        custom_metadata = {
-            'allowed_methods': ['PUT', 'OPTIONS'],
-            'endpoint_description': 'Update user password',
-            'required_fields': ['username', 'old_password', 'new_password'],
-            'response_format': {
-                'success': {'message': 'string'},
-                'error': {'detail': 'string'}
-            },
-            'custom_info': {
-                'version': '1.0',
-                'developer': 'Diyas',
-                'last_updated': '2024-02-11'
-            }
-        }
-        return Response(custom_metadata, status=status.HTTP_200_OK)
 
 class UpdateData(APIView):
     serializer_class = UpdateDataSerializer
@@ -145,55 +77,19 @@ class UpdateData(APIView):
         old_password = request.data.get('old_password')
         new_password = request.data.get('new_password')
         new_username = request.data.get('new_username')
-        if User.objects.all().filter(username=username, password=old_password).exists():
-            User.objects.filter(username=username).update(password=new_password, username=new_username)
+        user = User.objects.filter(username=username, password=old_password).first()
+        if user:
+            user.username = new_username
+            user.password = new_password
+            user.save()
             return Response({"message": "User Data updated successfully"}, status=status.HTTP_200_OK)
-        else:
-            return Response({"detail": "User not found or Password Incorrect"}, status=status.HTTP_400_BAD_REQUEST)
-
-    def options(self, request, *args, **kwargs):
-        custom_metadata = {
-            'allowed_methods': ['PATCH', 'OPTIONS'],
-            'endpoint_description': 'Update user data including username and password',
-            'required_fields': ['username', 'old_password', 'new_password', 'new_username'],
-            'response_format': {
-                'success': {'message': 'string'},
-                'error': {'detail': 'string'}
-            },
-            'custom_info': {
-                'version': '1.0',
-                'developer': 'Diyas',
-                'last_updated': '2024-02-11'
-            }
-        }
-        return Response(custom_metadata, status=status.HTTP_200_OK)
+        return Response({"detail": "User not found or Password Incorrect"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class DeleteUserAPI(APIView):
     def delete(self, request, id):
-        try:
-            user = User.objects.all().filter(id=id).delete()
-            return Response({"message": f"User Data deleted successfully User id: {id} "}, status=status.HTTP_200_OK)
-        except User.DoesNotExist:
-            return Response({"detail": "User not found "}, status=status.HTTP_400_BAD_REQUEST)
-
-    def options(self, request, *args, **kwargs):
-        custom_metadata = {
-                'allowed_methods': ['DELETE', 'OPTIONS'],
-                'endpoint_description': 'Delete user by ID',
-                'parameters': {
-                    'id': 'integer (required) - User ID to delete'
-                },
-                'response_format': {
-                    'success': {'message': 'string'},
-                    'error': {'detail': 'string'}
-                },
-                'custom_info': {
-                    'version': '1.0',
-                    'developer': 'Diyas',
-                    'last_updated': '2024-02-11'
-                }
-            }
-        return Response(custom_metadata, status=status.HTTP_200_OK)
-
-
+        user = User.objects.filter(id=id).first()
+        if not user:
+            return Response({"detail": "User not found"}, status=status.HTTP_400_BAD_REQUEST)
+        user.delete()
+        return Response({"message": f"User Data deleted successfully User id: {id}"}, status=status.HTTP_200_OK)
