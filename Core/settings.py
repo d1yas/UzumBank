@@ -36,11 +36,12 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-'whitenoise.runserver_nostatic',
+    'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
     'usersapp',  # Your custom app, e.g., UzumUser
     'cardapp',
     'rest_framework',
+    'sslserver',
 ]
 
 # Middleware

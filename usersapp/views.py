@@ -3,7 +3,7 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Contact, User
+from .models import User
 from .serializers import UpdatePasswordSerializer, UserSerializer, UpdateDataSerializer
 
 
@@ -38,7 +38,7 @@ class LoginView(APIView):
 class AllUsersView(APIView):
     def get(self, request):
         users = User.objects.all()
-        paginator = Paginator(users, 10)
+        paginator = Paginator(users, 5)
         page_number = request.GET.get("page")
         page_obj = paginator.get_page(page_number)
         serializer = UserSerializer(page_obj, many=True)
