@@ -384,4 +384,82 @@ class PersonAdmin(admin.ModelAdmin):
             pass
         return queryset, may_have_duplicates
 
-    def get_changeform_initial_data(self,
+    def get_changeform_initial_data(self,request):
+        """Provide initial data for new objects"""
+        return {"first_name": "New", "last_name": "Person"}
+
+    def get_urls(self):
+        """Add custom URLs to the admin"""
+        urls = super().get_urls()
+        my_urls = [path("my_view/", self.admin_site.admin_view(self.my_view))]
+        return my_urls + urls
+
+    def my_view(self, request):
+        """Custom view in admin"""
+        context = dict(
+            self.admin_site.each_context(request),
+            title="My Custom View",
+        )
+        return TemplateResponse(request, "admin/my_custom_view.html", context)
+
+    def get_queryset(self, request):
+        """Filter queryset based on user"""
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        # Example: non-superusers see only certain records
+        return qs.filter(groups__name="Public")
+
+
+class AuthorAdmin(admin.ModelAdmin):
+    """Admin for Author model with simpler configuration"""
+    list_display = ["name", "title", "view_birth_date"]
+    date_hierarchy = "birth_date"
+    inlines = [BookInline]
+
+    @admin.display(empty_value="???")
+    def view_birth_date(self, obj):
+        """Custom display for birth date with empty value handling"""
+        return obj.birth_date
+
+
+class GroupAdmin(admin.ModelAdmin):
+    """Admin for Group model"""
+    inlines = [MembershipInline]
+    exclude = ["members"]  # Hide the direct M2M field since we're using the through inline
+
+
+class ProductAdmin(admin.ModelAdmin):
+    """Admin with generic inline example"""
+    inlines = [ImageInline]
+
+
+class BlogAdmin(admin.ModelAdmin):
+    """Admin with ordering by related field"""
+    list_display = ["title", "author", "author_first_name"]
+
+    @admin.display(ordering="author__first_name")
+    def author_first_name(self, obj):
+        """Display and order by related field"""
+        return obj.author.first_name
+
+
+class ArticleAdmin(admin.ModelAdmin):
+    """Admin with save_model example"""
+    def save_model(self, request, obj, form, change):
+        """Customize object saving"""
+        # Example: save current user when saving article
+        obj.user = request.user
+        super().save_model(request, obj, form, change)
+
+    def save_formset(self, request, form, formset, change):
+        """Customize formset saving"""
+        instances = formset.save(commit=False)
+        for obj in formset.deleted_objects:
+            obj.delete()
+        for instance in instances:
+            # Example: set user for related objects
+            instance.user = request.user
+            instance.save()
+        formset.save_m2m()
+
