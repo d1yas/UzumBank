@@ -25,19 +25,3 @@ class Card(models.Model):
         return not self.is_expired  # True bo‘lsa, aktiv
 
 
-class Course(models.Model):
-    name = models.CharField(max_length=255)
-    description = models.TextField()
-
-    def __str__(self):
-        return self.name
-
-
-class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_profile')
-    courses = models.ManyToManyField(Course, related_name='students')
-
-    def __str__(self):
-        return self.user.username
-
-

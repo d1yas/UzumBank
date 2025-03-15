@@ -4,9 +4,6 @@ from rest_framework.views import APIView
 from .serializers import CardSerializer, TransacsionSerializer, UpdatePasswordCardSerializer, UpdateDataCardSerializer, AddMoneySerializer, AddCardSerializer
 from rest_framework.response import Response
 
-from usersapp.models import User
-
-
 class barcha_card(APIView):
     def get(self, request):
         cardlar = Card.objects.all()
@@ -123,7 +120,7 @@ class AddCard(APIView):
 #         card_number = request.data.get('card_number')
 #         try:
 #             card = Card.objects.get(card_number=card_number)
-#         except Card.DoesNotExist:
+#         ex                                                                    cept Card.DoesNotExist:
 #             return Response({"message": "Card not found"}, status=404)
 
 #         serializer = self.serializer_class(card, data=request.data, partial=True)
